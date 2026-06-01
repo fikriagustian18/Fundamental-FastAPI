@@ -1,6 +1,7 @@
-from fastapi import FastAPI, APIRouter
-from app.core.settings import settings
 from app.api.routes.dependency_injection import router as di_router
+from app.core.settings import settings
+from app.core.exceptions import setup_exception_handlers
+from fastapi import FastAPI, APIRouter
 import uvicorn
 
 app = FastAPI(
@@ -8,6 +9,8 @@ app = FastAPI(
     description="Understanding the fundamentals of FastAPI, especially three important concepts: Dependency Injection, Pydantic Models, and Background Tasks. The explanation includes concepts and implementation examples to simplify understanding and provide a clear overview of their usage.",
     version=settings.version
 )
+
+setup_exception_handlers(app)
 
 # Parent router
 parent_router = APIRouter(prefix=settings.prefix_version)

@@ -27,6 +27,8 @@ PREFIX_VERSION=/api/v1
 VERSION=1.0.0
 APP_HOST=localhost
 APP_PORT=8000
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
 ```
 *(You can customize the host or port in this file according to your needs).*
 
@@ -49,16 +51,21 @@ Once the server runs successfully, the terminal will display logs similar to the
 Here is a general overview of the project's directory structure:
 ```text
 fundamental_fastapi/
-├── app/                        # Main Application Directory
-│   ├── api/                    # API Routes and Dependencies Module
-│   │   ├── routes/             # Endpoint Definitions (Controllers)
-│   │   │   └── dependency_injection.py
-│   │   └── simple_deps.py      # Simple Dependency Functions
-│   ├── core/                   # Core Application Configuration
-│   │   └── settings.py         # Pydantic Settings Configuration (.env)
-│   └── main.py                 # FastAPI Application Entry Point
-├── .env                        # Local Environment Variables
-└── requirements.txt            # Python Dependencies List
+├── app/                                # Main Application Directory
+│   ├── api/                            # API Routes and Dependencies Module
+│   │   ├── routes/                     # Endpoint Definitions (Controllers)
+│   │   │   └── dependency_injection.py # DI & Login Endpoints
+│   │   ├── simple_deps.py              # Simple Dependency Functions (Query Params, Form Data)
+│   │   └── authentication_deps.py      # Authentication Dependencies (Verify User, JWT)
+│   ├── core/                           # Core Application Configuration
+│   │   ├── settings.py                 # Pydantic Settings Configuration (.env)
+│   │   └── exceptions.py               # Custom Exception & Global Handler
+│   ├── crud/                           # Data Access Layer
+│   │   └── users.py                    # User CRUD Operations (Dummy DB)
+│   └── main.py                         # FastAPI Application Entry Point
+├── .env                                # Local Environment Variables
+├── .env.example                        # Environment Variables Template
+└── requirements.txt                    # Python Dependencies List
 ```
 
 ---
@@ -85,7 +92,7 @@ FastAPI uses the `Depends()` function to automatically inject dependencies.
 In this project, we define a simple dependency in [simple_deps.py](app/api/simple_deps.py):
 
 ```python
-def common_params(query: str = None, limit: int = 10):
+async def common_params(query: str = None, limit: int = 10):
     return { "query": query, "limit": limit }
 ```
 
@@ -100,3 +107,13 @@ async def read_items(commons: dict = Depends(common_params)):
 **Explanation:**
 * `common_params` is the **dependency**.
 * `Depends(common_params)` will be automatically invoked by FastAPI when the endpoint is accessed, and its return value will be passed into the `commons` parameter.
+
+### Example 2: Form Data Dependency
+Dependencies can also be used to extract form data:
+
+```python
+async def form_data_params(username: str = None, password: str = None):
+    return { "username": username, "password": password }
+```
+
+Used in the `/login` endpoint to extract login data from the request body.
