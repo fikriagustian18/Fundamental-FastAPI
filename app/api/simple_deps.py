@@ -1,5 +1,5 @@
-async def common_params(query: str = None, limit: int = 10):
+async def common_params(query: str, limit: int):
     return { "query": query, "limit": limit }
 
-async def form_data_params(username: str = None, password: str = None):
+async def form_data_params(username: str, password: str):
     return { "username": username, "password": password }

@@ -3,3 +3,5 @@ pydantic-settings==2.13.1
 uvicorn==0.42.0
 pyjwt==2.13.0
 pwdlib[argon2]==0.3.0
+sqlalchemy==2.0.50
+psycopg2-binary==2.9.12

@@ -29,8 +29,9 @@ APP_HOST=localhost
 APP_PORT=8000
 SECRET_KEY=your-secret-key-here
 ALGORITHM=HS256
+DATABASE_URL=postgresql://postgres:password@localhost:5432/mydb
 ```
-*(You can customize the host or port in this file according to your needs).*
+*(You can customize the host, port, or database URL in this file according to your needs).*
 
 ---
 
@@ -54,14 +55,18 @@ fundamental_fastapi/
 ├── app/                                # Main Application Directory
 │   ├── api/                            # API Routes and Dependencies Module
 │   │   ├── routes/                     # Endpoint Definitions (Controllers)
-│   │   │   └── dependency_injection.py # DI & Login Endpoints
+│   │   │   └── dependency_injection.py # DI, Login, and User Creation Endpoints
 │   │   ├── simple_deps.py              # Simple Dependency Functions (Query Params, Form Data)
-│   │   └── authentication_deps.py      # Authentication Dependencies (Verify User, JWT)
+│   │   ├── authentication_deps.py      # Authentication Helpers & Password Hash
+│   │   └── chain_deps.py               # Chained/Sub-dependencies (Database Session & User Flow)
 │   ├── core/                           # Core Application Configuration
 │   │   ├── settings.py                 # Pydantic Settings Configuration (.env)
 │   │   └── exceptions.py               # Custom Exception & Global Handler
 │   ├── crud/                           # Data Access Layer
-│   │   └── users.py                    # User CRUD Operations (Dummy DB)
+│   │   ├── database.py                 # SQLAlchemy Connection & Session Setup
+│   │   └── users.py                    # User CRUD Operations (Database integration)
+│   ├── models/                         # Database Models
+│   │   └── user.py                     # User SQLAlchemy Model
 │   └── main.py                         # FastAPI Application Entry Point
 ├── .env                                # Local Environment Variables
 ├── .env.example                        # Environment Variables Template
@@ -88,11 +93,11 @@ Dependency Injection in FastAPI is used to:
 
 FastAPI uses the `Depends()` function to automatically inject dependencies.
 
-### Implementation Example
+### Example 1: Simple Dependency
 In this project, we define a simple dependency in [simple_deps.py](app/api/simple_deps.py):
 
 ```python
-async def common_params(query: str = None, limit: int = 10):
+async def common_params(query: str, limit: int):
     return { "query": query, "limit": limit }
 ```
 
@@ -112,8 +117,27 @@ async def read_items(commons: dict = Depends(common_params)):
 Dependencies can also be used to extract form data:
 
 ```python
-async def form_data_params(username: str = None, password: str = None):
+async def form_data_params(username: str, password: str):
     return { "username": username, "password": password }
 ```
 
 Used in the `/login` endpoint to extract login data from the request body.
+
+### Example 3: Dependency Chaining (Sub-dependencies) & Database Session
+FastAPI allows dependencies to depend on other dependencies (dependency chaining). This concept is very useful for managing database sessions and multi-step workflows. We can inject multiple dependencies or make one dependency depend on another. For example, `create_user` depends on `form_user` (to extract user details) and `get_db` (to inject the database session):
+
+```python
+async def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+async def form_user(username: str, password: str, role_type: str):
+    return { "username": username, "password": password, "role_type": role_type }
+
+async def create_user(user: dict = Depends(form_user), db: dict = Depends(get_db)):
+    user["hashed_password"] = await create_hashed_password(user["password"])
+    return CRUDUser().create_user(db, user)
+```

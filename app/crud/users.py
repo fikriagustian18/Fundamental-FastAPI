@@ -1,19 +1,17 @@
-import uuid
+from sqlalchemy.orm import Session
+from app.crud.database import engine
+import app.models.user as usersModels
 
-# Dummy database local in-memory
-DUMMY_DATABASE = {
-    uuid.UUID("9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"): {
-        "id": uuid.UUID("9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"),
-        "username": "john",
-        "role_type": "admin",
-        "hashed_password": "$argon2id$v=19$m=65536,t=3,p=4$41tsWCGMyVDgd6NYC2FlPg$FjKVdCFEpHGiFpYAzMfrexEKbxHuCkYc23p91LrMxiU" # secret123
-    }
-}
+# Create the database tables automatically (for production, use Alembic migrations instead)
+usersModels.Base.metadata.create_all(bind=engine)
 
 class CRUDUser:
-    def get_user_by_username(self, username: str) -> dict | None:
-        # Search user by username in dummy database
-        for user in DUMMY_DATABASE.values():
-            if user["username"] == username:
-                return user
-        return None
+    def get_user_by_username(self, db: Session, username: str) -> dict | None:
+        return db.query(usersModels.User).filter(usersModels.User.username == username).first()
+    
+    def create_user(self, db: Session, user: dict) -> dict | None:
+        db_item = usersModels.User(username=user["username"], role_type=user["role_type"], hashed_password=user["hashed_password"])
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item) # Refresh to get the generated ID from the database
+        return db_item
